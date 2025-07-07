@@ -63,6 +63,6 @@ A hybrid smart lock system using **ESP32** for secure door control with both **m
 │   └── app.py
 ├── api_server/          # PythonAnywhere API backend
 │   └── api.py
-├── circuit_diagram/     # Fritzing or schematic files
+├── circuit_prototyping/     # Fritzing or schematic files
 ├── README.md
 
