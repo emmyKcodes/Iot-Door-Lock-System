@@ -85,7 +85,3 @@ def update_pin(key: Optional[str], _data : Data):
             content={"error": "Invalid key provided. Access denied."},
             status_code=401,
         )
-
-
-if __name__ == "__main__":
-    uvicorn.run("main:web", port=8888, reload=True)
