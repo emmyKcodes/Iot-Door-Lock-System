@@ -51,7 +51,7 @@ graph TB
     B --> C[☁️ Render Cloud]
     C --> D[🌐 Internet]
     D --> E[📡 ESP32 WiFi]
-    E --> F[🔐 Physical Lock]
+    E --> F[🔐 Servo Controlled Lock]
     E --> G[⌨️ Keypad Input]
     E --> H[📺 LCD Display]
     E --> I[🔊 Buzzer Alert]
@@ -112,7 +112,7 @@ Your control panel that:
 ├── circuit_prototyping/     # Fritzing or schematic files
 ├── README.md
 
----
+```
 
 ## 🎨 What Makes This Special
 
