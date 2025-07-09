@@ -111,7 +111,6 @@ Your control panel that:
 │   └── main.py
 ├── circuit_prototyping/     # Fritzing or schematic files
 ├── README.md
-
 ```
 
 ## 🎨 What Makes This Special
