@@ -62,7 +62,10 @@ A hybrid smart lock system using **ESP32** for secure door control with both **m
 ├── streamlit_app/       # Web interface (Streamlit)
 │   └── app.py
 ├── api_server/          # PythonAnywhere API backend
-│   └── api.py
+|   └── test/
+|   |   └── one.py
+|   |   └── api_client.py
+│   └── main.py
 ├── circuit_prototyping/     # Fritzing or schematic files
 ├── README.md
 
