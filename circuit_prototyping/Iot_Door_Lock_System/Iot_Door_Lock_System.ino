@@ -1,6 +1,7 @@
 #include <ESP32Servo.h>
 #include <Keypad.h>
 #include <LiquidCrystal_I2C.h>
+#include <Wire.h>
 
 // constants
 #define c1 16
@@ -39,6 +40,7 @@ Servo servo;
 Keypad keypad = Keypad(makeKeymap(keys), RowPins, ColPins, ROWS, COLS);
 LiquidCrystal_I2C lcd(0x27, 16, 4);
 
+// Functions
 void HomePage(){
   InputPin = "";
   lcd.clear();
@@ -49,16 +51,9 @@ void HomePage(){
   lcd.blink();
 }
 
-void FalseHomePage(){
-  lcd.clear();
-  lcd.noBlink();
-  lcd.setCursor(1, 0);
-  lcd.print("Input Your Pin");
-  lcd.setCursor(AdjCol, 1);
-  lcd.blink();
-}
-
 void SuccessPage(){
+  tone(BuzzerPin, 500, int(3*ScreenDelay/4));
+  noTone(BuzzerPin);
   lcd.clear();
   lcd.noBlink();
   lcd.setCursor(4, 0);
@@ -67,6 +62,7 @@ void SuccessPage(){
   lcd.print("SuccessFully");
   HandleDoorLock();
   delay(ScreenDelay);
+  servo.write(0);
   HomePage();
 }
 
@@ -100,7 +96,6 @@ void WelcomePage(){
 }
 
 void setup() {
-  // put your setup code here, to run once:
   Serial.begin(115200);
   Wire.begin(SDA, SCL);
   lcd.init();
@@ -109,22 +104,28 @@ void setup() {
   servo.attach(ServoPin);
   pinMode(LedPin, OUTPUT);
   pinMode(BuzzerPin, OUTPUT);
-  servo.write(0);
+  servo.write(180);
 }
 
 void BackSpace(){
-  int Amt = AdjCol - 6;
+  lcd.noBlink();
+  int Amt = AdjCol - 7;
   String TempStr = InputPin;
+  String Spacer;
   InputPin = "";
-  for(int i=0; i<Amt-1; i++){
+  for(int i=0; i<Amt; i++){
     InputPin += TempStr[i];
   }
-  Serial.println(InputPin);
-  FalseHomePage();
-  lcd.noBlink();
-  lcd.setCursor(1, 6);
-  lcd.print(String(InputPin));
-  AdjCol--;
+  lcd.setCursor(6, 1);
+  for(int a=0; a<=Amt; a++){
+      Spacer += " ";
+  }
+  lcd.print(Spacer);
+  lcd.setCursor(6, 1);
+  lcd.print(InputPin);
+  if (AdjCol > 6){
+    AdjCol --;
+  };
   lcd.blink();
 }
 
@@ -142,7 +143,6 @@ void loop() {
       HandleInput(key);
     };
   };
-  // put your main code here, to run repeatedly:
 }
 
 void HandleInput(char key){
@@ -160,10 +160,8 @@ void BuzzerInput(){
 void HandleDoorLock(){
   for(int i=0; i<=90; i=i+5){
     servo.write(i);
-    tone(BuzzerPin, 500);
-    delay(700);
+    delay(250);
   }
-  noTone(BuzzerPin);
 }
 
 void LedSequence(){
@@ -198,5 +196,7 @@ void CheckPassword(){
     } else {
       ErrorPage();
     };
+  }else{
+    ErrorPage();
   };
 }
