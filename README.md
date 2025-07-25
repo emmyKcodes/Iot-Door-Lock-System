@@ -101,7 +101,7 @@ Your control panel that:
 
 ```plaintext
 ├── firmware/            # ESP32 firmware code
-│   └── main.ino
+│   └── firmware.ino
 ├── streamlit_app/       # Web interface (Streamlit)
 │   └── app.py
 ├── api_server/          # PythonAnywhere API backend
