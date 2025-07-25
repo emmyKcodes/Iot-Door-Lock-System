@@ -1,7 +1,6 @@
 #include <ESP32Servo.h>
 #include <Keypad.h>
 #include <LiquidCrystal_I2C.h>
-#include <Wire.h>
 
 // constants
 #define c1 16
