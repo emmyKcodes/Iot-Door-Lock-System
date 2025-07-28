@@ -1,6 +1,7 @@
 #include <ESP32Servo.h>
 #include <Keypad.h>
 #include <LiquidCrystal_I2C.h>
+#include <WiFi.h>
 
 // constants
 #define c1 16
@@ -15,7 +16,9 @@
 #define BuzzerPin 22
 #define LedPin 15
 #define SDA 33
-#define SCL 32 
+#define SCL 32
+#define PSWD "WHATEVER YOU WANT"
+#define SSID "ANYTHING HERE" 
 const byte ROWS = 4;
 const byte COLS = 4;
 
@@ -38,6 +41,11 @@ int ScreenDelay = 5000;
 Servo servo;
 Keypad keypad = Keypad(makeKeymap(keys), RowPins, ColPins, ROWS, COLS);
 LiquidCrystal_I2C lcd(0x27, 16, 4);
+
+void SetupWifi(){
+  WiFi.begin(SSID, PSWD);
+}
+
 
 // Functions
 void HomePage(){

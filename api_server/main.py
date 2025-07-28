@@ -25,9 +25,9 @@ class Data(BaseModel):
         
 
 # constants
-title="IoT-DoOr-LOcK-SysTem"
+title="D.L.I.S. - Door Lock IoT System"
 web = FastAPI(title=title, description="IoT Door Lock System API", version="1.0.0")
-route = "iot-door-sys"
+route = "DLIS"
 data = Data()
 
 # TODO: dealing with the state of the door lock
