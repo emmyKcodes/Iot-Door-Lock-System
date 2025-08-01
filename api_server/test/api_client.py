@@ -1,14 +1,16 @@
-import requests
 from requests import request
 from random import choice
 from time import sleep
+import socket
+import ssl
+import json
 
 class TestApiClient:
     """Test API Client for IoT Door System"""
 
     def __init__(self):
         self._key_ = "6f9d9614b195f255e7bb3744b92f9486713d9b7eb92edba244bc0f11907ae7c5"
-        self.base_route = "iot-door-sys"
+        self.base_route = "DLIS"
         self.url = "http://127.0.0.1:8888/" + self.base_route
         self.route: str
         for _ in range(10):
@@ -64,5 +66,85 @@ class TestApiClient:
 # _req_ = request("POST", f"{url}/{route}?key={_key_}", json=data)
 # print(_req_.status_code, _req_.json())
 
+class TestStateApi:
+    def __init__(self):
+        self._key_ = "6f9d9614b195f255e7bb3744b92f9486713d9b7eb92edba244bc0f11907ae7c5"
+        self.base_route = "DLIS"
+        self.url = "https://iot-door-lock-system.onrender.com/" + self.base_route
+        self.route: str
+        self.state = True
+    
+    def PostState(self):
+        self.post_requests = request("POST", f"{self.url}/state", json={"state": self.state}, timeout=5)
+        print(self.post_requests.status_code, self.post_requests.json())
+        self.state = not self.state
+
+    def GetState(self):
+        self.get_requests = request("GET", f"{self.url}/state", timeout=5)
+        print(self.get_requests.status_code, self.get_requests.json())
+
+class _TestStateApi_:
+    def __init__(self):
+        self._key_ = "6f9d9614b195f255e7bb3744b92f9486713d9b7eb92edba244bc0f11907ae7c5"
+        self.base_route = "DLIS"
+        self.host = "iot-door-lock-system.onrender.com"
+        self.port = 443  # HTTPS
+        self.state = True
+
+    def _create_ssl_connection(self):
+        context = ssl.create_default_context()
+        raw_socket = socket.create_connection((self.host, self.port), timeout=5)
+        return context.wrap_socket(raw_socket, server_hostname=self.host)
+
+    def PostState(self):
+        try:
+            conn = self._create_ssl_connection()
+            path = f"/{self.base_route}/state"
+            body = json.dumps({"state": self.state, "lock": True})
+            request = (
+                f"POST {path} HTTP/1.1\r\n"
+                f"Host: {self.host}\r\n"
+                "Content-Type: application/json\r\n"
+                f"Content-Length: {len(body)}\r\n"
+                "Connection: close\r\n"
+                "\r\n"
+                f"{body}"
+            )
+            conn.send(request.encode())
+            response = conn.recv(4096).decode()
+            print("[POST] Raw Response:\n", response)
+            conn.close()
+            self.state = not self.state
+        except Exception as e:
+            print("POST Error:", e)
+
+    def GetState(self):
+        try:
+            conn = self._create_ssl_connection()
+            path = f"/{self.base_route}/state"
+            request = (
+                f"GET {path} HTTP/1.1\r\n"
+                f"Host: {self.host}\r\n"
+                "Connection: close\r\n"
+                "\r\n"
+            )
+            conn.send(request.encode())
+            response = b""
+            while True:
+                chunk = conn.recv(1024)
+                if not chunk:
+                    break
+                response += chunk
+            conn.close()
+
+            print("[GET] Raw Response:\n", response.decode())
+        except Exception as e:
+            print("GET Error:", e)
+
+
 if __name__ == "__main__":
-    TestApiClient()
+    # TestApiClient()
+    stateapi = _TestStateApi_()
+    while True:
+        stateapi.PostState()
+        sleep(1)
