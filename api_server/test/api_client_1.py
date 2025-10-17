@@ -8,22 +8,24 @@ class TestApiClient:
 
     def __init__(self):
         self._key_ = "6f9d9614b195f255e7bb3744b92f9486713d9b7eb92edba244bc0f11907ae7c5"
-        self.base_route = "iot-door-sys"
+        self.base_route = "DLIS"
         self.url = "https://iot-door-lock-system.onrender.com/" + self.base_route
+        # self.url = "http://127.0.0.1:8000/" + self.base_route
         self.route: str
-        for _ in range(10):
-            self.post_lock()
-            sleep(0.01)
+        # for _ in range(10):
+        while True:
+            # self.post_lock()
+            # sleep(0.01)
             self.get_lock()
             sleep(0.01)
             self.get_state()
             sleep(0.01)
-            self.post_state()
-            sleep(0.01)
+            # self.post_state()
+            # sleep(0.01)
             self.get_pin()
             sleep(0.1)
-            self.post_pin()
-            sleep(0.1)
+            # self.post_pin()
+            # sleep(0.1)
 
 
     def data(self) -> dict:
