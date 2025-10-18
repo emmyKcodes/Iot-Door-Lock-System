@@ -411,7 +411,7 @@ export default function DisableDoorTemporarily() {
         setDoorDisabled(true);
         setDisabledUntil(new Date(data.disabled_until));
       }
-    } catch (_) {
+    } catch {
       console.error("Failed to fetch door status");
     }
   };
@@ -475,14 +475,12 @@ export default function DisableDoorTemporarily() {
   const handleDisable = async () => {
     setLoading(true);
     setMessage(null);
-
     const until = calculateDisabledUntil(selectedDuration);
     if (!until) {
       setMessage({ text: "Please enter a valid duration", type: "error" });
       setLoading(false);
       return;
     }
-
     try {
       const response = await fetch(API_URL, {
         method: "POST",
@@ -492,9 +490,7 @@ export default function DisableDoorTemporarily() {
           duration_minutes: Math.floor((until.getTime() - Date.now()) / 60000),
         }),
       });
-
       const data = await response.json();
-
       if (response.ok) {
         setDisabledUntil(until);
         setDoorDisabled(true);
@@ -511,7 +507,6 @@ export default function DisableDoorTemporarily() {
       setLoading(false);
     }
   };
-
   const handleEnable = async () => {
     try {
       const response = await fetch(API_URL, {

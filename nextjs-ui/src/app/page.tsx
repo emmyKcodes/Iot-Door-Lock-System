@@ -370,7 +370,7 @@ export default function SmartDoorHomepage() {
     }
   };
 
-  const handlePinSubmit = (e) => {
+  const handlePinSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (pin === CORRECT_PIN) {
       setShowPinModal(false);
