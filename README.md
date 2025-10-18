@@ -47,7 +47,7 @@ Ever locked yourself out? Forgotten your keys? Wanted to let someone in while yo
 
 ```mermaid
 graph TB
-    A[📱 Streamlit Dashboard] --> B[⚡ FastAPI Backend]
+    A[📱 Nextjs- Dashboard] --> B[⚡ FastAPI Backend]
     B --> C[☁️ Render Cloud]
     C --> D[🌐 Internet]
     D --> E[📡 ESP32 WiFi]
