@@ -1,87 +1,119 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Header
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import uvicorn
-# from icecream import ic as cout
-from fastapi.responses import JSONResponse
+from fastapi.responses import ORJSONResponse
+import orjson
+from functools import lru_cache
+import asyncio
+from contextlib import asynccontextmanager
 
 _key_ = "6f9d9614b195f255e7bb3744b92f9486713d9b7eb92edba244bc0f11907ae7c5"
 
-# TODO: 
-# --> open or lock door
-# --> change pin
-# --> temporarily deactivate manual control
-# --> others will think about them soon
+_memory_cache = {}
 
-#Classes 
-class Data(BaseModel):
-    state: Optional[bool] = False
-    lock: Optional[bool] = True
-    pin: Optional[str] = None
 
-    def __getitem__(self, key):
-        """Get item by key."""
-        pass
-        
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global _memory_cache
+    try:
+        with open("api_data.json", "r") as f:
+            _memory_cache = orjson.loads(f.read())
+    except FileNotFoundError:
+        _memory_cache = {"state": False, "lock": False, "pin": None}
 
-# constants
-title="D.L.I.S. - Door Lock IoT System"
-web = FastAPI(title=title, description="IoT Door Lock System API", version="1.0.0")
+    yield
+
+    with open("api_data.json", "wb") as f:
+        f.write(orjson.dumps(_memory_cache))
+
+
+class Storage:
+    @staticmethod
+    def load_data():
+        return _memory_cache
+
+    @staticmethod
+    async def store_data(key: str, value):
+        _memory_cache[key] = value
+
+        await asyncio.create_task(Storage._async_write())
+
+    @staticmethod
+    async def _async_write():
+        await asyncio.sleep(0.1)
+        with open("api_data.json", "wb") as f:
+            f.write(orjson.dumps(_memory_cache))
+
+
+class StateModel(BaseModel):
+    state: bool
+
+
+class LockModel(BaseModel):
+    lock: bool
+
+
+class PinModel(BaseModel):
+    pin: str = Field(min_length=1)
+
+
+web = FastAPI(
+    title="D.L.I.S. - Door Lock IoT System",
+    description="IoT Door Lock System API",
+    version="2.0.0",
+    default_response_class=ORJSONResponse,  # Faster JSON serialization
+    lifespan=lifespan
+)
+
 route = "DLIS"
-data = Data()
 
-# TODO: dealing with the state of the door lock
-@web.get(f'/{route}/state')
-def get_state():
-    return {
-        "state":
-        data.state}
+
+@web.get(f'/{route}/state', response_model=StateModel)
+async def get_state():
+    return {"state": _memory_cache.get("state", False)}
+
 
 @web.post(f'/{route}/state')
-def set_state(_data: Data):
-    data.state = _data.state
-    return {"Result": "Successfully set state", "door-state": data.state}
+async def set_state(data: StateModel):
+    await Storage.store_data("state", data.state)
+    return {"result": "ok", "state": data.state}
 
 
-# TODO: temporarily deactivating the manual lock, more like an override system
-@web.get(f'/{route}/lock')
-def get_lock_state():
-    return {
-        "lock":
-        data.lock,
-    }
+@web.get(f'/{route}/lock', response_model=LockModel)
+async def get_lock_state():
+    return {"lock": _memory_cache.get("lock", False)}
+
 
 @web.post(f'/{route}/lock')
-def set_lock_state(_data: Data):
-    data.lock = _data.lock
-    return {"Result": "Successfully set lock state", "lock-state": data.lock}
+async def set_lock_state(data: LockModel):
+    await Storage.store_data("lock", data.lock)
+    return {"result": "ok", "lock": data.lock}
 
 
-# TODO: changing the pin without footprints in the logs and codebase
 @web.get(f'/{route}/pin')
-def check_pin(key: Optional[str] = None):
-    if key == _key_:
-        return {"pin": data.pin}
-    else:
-        return JSONResponse(
-            content={"error": "Invalid key provided. Access denied."},
-            status_code=401,
-        )
+async def check_pin(key: str = Header(..., alias="key")):
+    if key != _key_:
+        raise HTTPException(status_code=401, detail="Invalid key")
+    return {"pin": _memory_cache.get("pin")}
+
 
 @web.post(f'/{route}/pin')
-def update_pin(key: Optional[str], _data : Data):
-    if key == _key_:
-        if _data.pin is None or _data.pin == "" :
-            return JSONResponse(
-                content={"error": "Pin is required."},
-                status_code=400,
-                )
-        else:
-            data.pin = _data.pin
-        # return {"pin": data.pin}
-        return {"Result": "Successfully updated pin"}
-    else:
-        return JSONResponse(
-            content={"error": "Invalid key provided. Access denied."},
-            status_code=401,
-        )
+async def update_pin(data: PinModel, key: str = Header(..., alias="key")):
+    if key != _key_:
+        raise HTTPException(status_code=401, detail="Invalid key")
+
+    await Storage.store_data("pin", data.pin)
+    return {"result": "ok"}
+
+
+if __name__ == "__main__":
+    uvicorn.run(
+        web,
+        host="0.0.0.0",
+        port=8000,
+        # Production optimizations
+        workers=2,  # Adjust based on CPU cores
+        limit_concurrency=100,
+        limit_max_requests=10000
+    )

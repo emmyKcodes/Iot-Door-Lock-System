@@ -90,6 +90,7 @@ class _TestStateApi_:
         self.host = "iot-door-lock-system.onrender.com"
         self.port = 443  # HTTPS
         self.state = True
+        self.lock = False
 
     def _create_ssl_connection(self):
         context = ssl.create_default_context()
@@ -117,6 +118,28 @@ class _TestStateApi_:
             self.state = not self.state
         except Exception as e:
             print("POST Error:", e)
+
+    def PostLock(self):
+        try:
+            conn = self._create_ssl_connection()
+            path = f"/{self.base_route}/lock"
+            body = json.dumps({"lock": self.lock})
+            request = (
+                f"POST {path} HTTP/1.1\r\n"
+                f"Host: {self.host}\r\n"
+                "Content-Type: application/json\r\n"
+                f"Content-Length: {len(body)}\r\n"
+                "Connection: close\r\n"
+                "\r\n"
+                f"{body}"
+            )
+            conn.send(request.encode())
+            response = conn.recv(4096).decode()
+            print("[POST] Raw Response:\n", response)
+            conn.close()
+            self.lock = not self.lock
+        except Exception as e:
+            print("POST Lock Error:", e)
 
     def GetState(self):
         try:
@@ -147,4 +170,6 @@ if __name__ == "__main__":
     stateapi = _TestStateApi_()
     while True:
         stateapi.PostState()
-        sleep(1)
+        sleep(.15)
+        # stateapi.PostLock()
+        # sleep(.15)
