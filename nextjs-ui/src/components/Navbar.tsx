@@ -391,16 +391,11 @@ const ThemeOption = styled.button<{ $active: boolean }>`
   `}
 `;
 
-interface NavbarProps {
-  currentPage?: "home" | "changePin" | "disable";
-}
-
-export const Navbar: React.FC<NavbarProps> = ({ currentPage = "home" }) => {
+export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const { themeMode, setThemeMode } = useTheme();
   const router = useRouter();
-
   useEffect(() => {
     const handleClickOutside = () => {
       setThemeMenuOpen(false);

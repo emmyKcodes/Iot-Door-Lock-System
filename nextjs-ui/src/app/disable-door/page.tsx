@@ -407,13 +407,12 @@ export default function DisableDoorTemporarily() {
     try {
       const response = await fetch(API_URL);
       const data = await response.json();
-
       if (data.disabled) {
         setDoorDisabled(true);
         setDisabledUntil(new Date(data.disabled_until));
       }
-    } catch (error) {
-      console.error("Failed to fetch door status:", error);
+    } catch (_) {
+      console.error("Failed to fetch door status");
     }
   };
 
@@ -520,7 +519,6 @@ export default function DisableDoorTemporarily() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "enable" }),
       });
-
       if (response.ok) {
         setDoorDisabled(false);
         setDisabledUntil(null);
@@ -528,7 +526,7 @@ export default function DisableDoorTemporarily() {
       } else {
         setMessage({ text: "Failed to enable door", type: "error" });
       }
-    } catch (error) {
+    } catch (_) {
       setMessage({ text: "Failed to connect to door system", type: "error" });
     }
   };
