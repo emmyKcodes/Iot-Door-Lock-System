@@ -16,15 +16,15 @@ class TestApiClient:
         while True:
             # self.post_lock()
             # sleep(0.01)
-            self.get_lock()
+            # self.get_lock()
             sleep(0.01)
-            self.get_state()
+            # self.get_state()
             sleep(0.01)
             # self.post_state()
             # sleep(0.01)
-            self.get_pin()
+            # self.get_pin()
             sleep(0.1)
-            # self.post_pin()
+            self.post_pin()
             # sleep(0.1)
 
 
@@ -56,11 +56,11 @@ class TestApiClient:
         print(req.status_code, req.json())
 
     def get_pin(self):
-        req = request("GET", f"{self.url}/pin?key={self._key_}", timeout=5)
+        req = request("GET", f"{self.url}/pin", headers={"key": "6f9d9614b195f255e7bb3744b92f9486713d9b7eb92edba244bc0f11907ae7c5"}, timeout=5)
         print(req.status_code, req.json())
 
     def post_pin(self):
-        req = request("POST", f"{self.url}/pin?key={self._key_}", json=self.data(), timeout=5)
+        req = request("POST", f"{self.url}/pin", headers={"key": self._key_}, json=self.data(), timeout=5)
         print(req.status_code, req.text)
 
 # _req_ = request("POST", f"{url}/{route}?key={_key_}", json=data)
