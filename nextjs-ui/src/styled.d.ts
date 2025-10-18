@@ -15,6 +15,7 @@ declare module "styled-components" {
       border: string;
       glassBg: string;
       glassBorder: string;
+      info: string;
     };
     spacing: {
       xs: string;
