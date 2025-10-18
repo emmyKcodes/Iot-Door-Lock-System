@@ -3,6 +3,11 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { DoorOpen, AlertTriangle } from "lucide-react";
 
+type Message = {
+  text: string;
+  type: "success" | "error" | "info";
+};
+
 const Container = styled.div`
   min-height: 100vh;
   background: ${(props) => props.theme.colors.background};
@@ -123,7 +128,7 @@ const DoorInfo = styled.div`
   }
 `;
 
-const StatusBadge = styled.span`
+const StatusBadge = styled.span<{ $disabled: boolean }>`
   padding: ${(props) => props.theme.spacing.xs}
     ${(props) => props.theme.spacing.md};
   border-radius: ${(props) => props.theme.borderRadius.full};
@@ -154,7 +159,7 @@ const DurationOptions = styled.div`
   }
 `;
 
-const DurationButton = styled.button`
+const DurationButton = styled.button<{ $selected: boolean }>`
   padding: ${(props) => props.theme.spacing.md};
   background: ${(props) =>
     props.$selected ? props.theme.colors.text : props.theme.colors.background};
@@ -339,26 +344,36 @@ const DisabledUntil = styled.div`
   }
 `;
 
-const MessageBox = styled.div`
+const MessageBox = styled.div<{ $type: "success" | "error" | "info" }>`
   margin-top: ${(props) => props.theme.spacing.lg};
   padding: ${(props) => props.theme.spacing.md};
   border-radius: ${(props) => props.theme.borderRadius.md};
   font-size: 0.875rem;
   font-weight: 500;
   text-align: center;
+
   background: ${(props) =>
-    props.type === "success"
+    props.$type === "success"
       ? "rgba(16, 185, 129, 0.1)"
-      : "rgba(239, 68, 68, 0.1)"};
+      : props.$type === "error"
+      ? "rgba(239, 68, 68, 0.1)"
+      : "rgba(59, 130, 246, 0.1)"};
+
   color: ${(props) =>
-    props.type === "success"
+    props.$type === "success"
       ? props.theme.colors.success
-      : props.theme.colors.danger};
+      : props.$type === "error"
+      ? props.theme.colors.danger
+      : props.theme.colors.info};
+
   border: 1px solid
     ${(props) =>
-      props.type === "success"
+      props.$type === "success"
         ? props.theme.colors.success
-        : props.theme.colors.danger};
+        : props.$type === "error"
+        ? props.theme.colors.danger
+        : props.theme.colors.info};
+
   animation: slideIn 0.3s ease forwards;
 
   @keyframes slideIn {
@@ -377,10 +392,10 @@ export default function DisableDoorTemporarily() {
   const [selectedDuration, setSelectedDuration] = useState("1h");
   const [customValue, setCustomValue] = useState("");
   const [customUnit, setCustomUnit] = useState("hours");
+  const [message, setMessage] = useState<Message | null>(null);
+  const [disabledUntil, setDisabledUntil] = useState<Date | null>(null);
   const [doorDisabled, setDoorDisabled] = useState(false);
-  const [disabledUntil, setDisabledUntil] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(null);
 
   const API_URL = "/api/disable-door";
 
@@ -413,7 +428,7 @@ export default function DisableDoorTemporarily() {
     { value: "custom", label: "Custom" },
   ];
 
-  const calculateDisabledUntil = (duration) => {
+  const calculateDisabledUntil = (duration: string): Date | null => {
     const now = new Date();
     let minutes = 0;
 
@@ -459,14 +474,15 @@ export default function DisableDoorTemporarily() {
   };
 
   const handleDisable = async () => {
+    setLoading(true);
+    setMessage(null);
+
     const until = calculateDisabledUntil(selectedDuration);
     if (!until) {
       setMessage({ text: "Please enter a valid duration", type: "error" });
+      setLoading(false);
       return;
     }
-
-    setLoading(true);
-    setMessage(null);
 
     try {
       const response = await fetch(API_URL, {
@@ -474,7 +490,7 @@ export default function DisableDoorTemporarily() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "disable",
-          duration_minutes: Math.floor((until - new Date()) / 60000),
+          duration_minutes: Math.floor((until.getTime() - Date.now()) / 60000),
         }),
       });
 
@@ -498,46 +514,29 @@ export default function DisableDoorTemporarily() {
   };
 
   const handleEnable = async () => {
-    setLoading(true);
-    setMessage(null);
-
     try {
       const response = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "enable",
-        }),
+        body: JSON.stringify({ action: "enable" }),
       });
-
-      const data = await response.json();
 
       if (response.ok) {
         setDoorDisabled(false);
         setDisabledUntil(null);
-        setSelectedDuration("1h");
-        setCustomValue("");
         setMessage({ text: "Door enabled successfully", type: "success" });
       } else {
-        setMessage({
-          text: data.detail || "Failed to enable door",
-          type: "error",
-        });
+        setMessage({ text: "Failed to enable door", type: "error" });
       }
     } catch (error) {
       setMessage({ text: "Failed to connect to door system", type: "error" });
-    } finally {
-      setLoading(false);
     }
   };
-
-  const formatDateTime = (date) => {
-    if (!date) return "";
+  const formatDateTime = (date: Date): string => {
     return date.toLocaleString("en-US", {
       weekday: "short",
       month: "short",
       day: "numeric",
-      year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -654,7 +653,7 @@ export default function DisableDoorTemporarily() {
           )}
 
           {message && (
-            <MessageBox type={message.type}>{message.text}</MessageBox>
+            <MessageBox $type={message.type}>{message.text}</MessageBox>
           )}
         </DoorCard>
 

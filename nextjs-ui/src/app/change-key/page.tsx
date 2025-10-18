@@ -3,6 +3,16 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import { DoorOpen, Lock, KeyRound, AlertCircle } from "lucide-react";
 
+interface Message {
+  text: string;
+  type: "success" | "error";
+  detail?: string;
+}
+
+interface MessageBoxProps {
+  type: "success" | "error";
+}
+
 const Container = styled.div`
   min-height: 100vh;
   background: ${(props) => props.theme.colors.background};
@@ -151,7 +161,7 @@ const SubmitButton = styled.button`
   }
 `;
 
-const MessageBox = styled.div`
+const MessageBox = styled.div<MessageBoxProps>`
   margin-top: ${(props) => props.theme.spacing.lg};
   padding: ${(props) => props.theme.spacing.md};
   border-radius: ${(props) => props.theme.borderRadius.md};
@@ -223,7 +233,7 @@ const InfoText = styled.p`
 export default function ChangeKeyPage() {
   const [oldKey, setOldKey] = useState("");
   const [newKey, setNewKey] = useState("");
-  const [message, setMessage] = useState(null);
+  const [message, setMessage] = useState<Message | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleChangeKey = async () => {
