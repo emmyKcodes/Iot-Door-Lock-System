@@ -102,8 +102,7 @@ Your control panel that:
 ```plaintext
 ├── firmware/            # ESP32 firmware code
 │   └── firmware.ino
-├── streamlit_app/       # Web interface (Streamlit)
-│   └── app.py
+├── nextjs-ui/       # Web interface (Nextjs)
 ├── api_server/          # PythonAnywhere API backend
 |   └── test/
 |   |   └── one.py
