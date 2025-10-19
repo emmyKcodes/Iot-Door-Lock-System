@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { DoorOpen, Lock, KeyRound, AlertCircle } from "lucide-react";
 
@@ -230,11 +230,93 @@ const InfoText = styled.p`
   margin: 0;
 `;
 
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-size: 1.125rem;
+  color: ${(props) => props.theme.colors.textSecondary};
+`;
+
 export default function ChangeKeyPage() {
   const [oldKey, setOldKey] = useState("");
   const [newKey, setNewKey] = useState("");
   const [message, setMessage] = useState<Message | null>(null);
   const [loading, setLoading] = useState(false);
+  const [pinExists, setPinExists] = useState<boolean | null>(null);
+  const [checkingPin, setCheckingPin] = useState(true);
+
+  useEffect(() => {
+    checkPinStatus();
+  }, []);
+
+  const checkPinStatus = async () => {
+    setCheckingPin(true);
+    try {
+      const response = await fetch("/api/check-pin-exists");
+      const data = await response.json();
+      setPinExists(data.exists);
+    } catch (error) {
+      console.error("Failed to check PIN status:", error);
+      setMessage({
+        text: "Failed to check PIN status",
+        detail: "Please refresh the page",
+        type: "error",
+      });
+      setPinExists(false);
+    } finally {
+      setCheckingPin(false);
+    }
+  };
+
+  const handleInitializePin = async () => {
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch("/api/initialize-pin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          pin: newKey,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage({
+          text: data.message || "PIN initialized successfully!",
+          type: "success",
+        });
+        setNewKey("");
+        setPinExists(true);
+      } else {
+        const errorMessage =
+          typeof data.detail === "string"
+            ? data.detail
+            : data.message || data.error || "Failed to initialize PIN";
+
+        setMessage({
+          text: errorMessage,
+          detail: `Status: ${response.status}`,
+          type: "error",
+        });
+      }
+    } catch (error) {
+      console.error("Connection error:", error);
+      setMessage({
+        text: "Failed to connect to door system",
+        detail: "Please check your internet connection or try again later.",
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChangeKey = async () => {
     setLoading(true);
@@ -262,7 +344,6 @@ export default function ChangeKeyPage() {
         setOldKey("");
         setNewKey("");
       } else {
-        // Better error extraction
         const errorMessage =
           typeof data.detail === "string"
             ? data.detail
@@ -287,6 +368,10 @@ export default function ChangeKeyPage() {
     }
   };
 
+  if (checkingPin) {
+    return <LoadingContainer>Checking PIN status...</LoadingContainer>;
+  }
+
   return (
     <Container>
       <Header>
@@ -295,43 +380,52 @@ export default function ChangeKeyPage() {
         </Logo>
       </Header>
 
-      <Title>Change Your PIN</Title>
-      <Subtitle>Update your door lock PIN to keep your home secure</Subtitle>
+      <Title>{pinExists ? "Change Your PIN" : "Set Up Your PIN"}</Title>
+      <Subtitle>
+        {pinExists
+          ? "Update your door lock PIN to keep your home secure"
+          : "Create your first PIN to secure your smart door"}
+      </Subtitle>
 
       <FormContainer>
         <InfoBox>
           <div style={{ marginTop: "2px" }}>ℹ️</div>
           <InfoText>
-            Enter your current PIN and choose a new one. Make sure to remember
-            your new PIN as it will be required to unlock your door.
+            {pinExists
+              ? "Enter your current PIN and choose a new one. Make sure to remember your new PIN as it will be required to unlock your door."
+              : "Choose a 4-digit PIN that you'll remember. This will be required to unlock your door."}
           </InfoText>
         </InfoBox>
 
         <FormCard>
           <FormContent>
-            <InputGroup>
-              <Label>
-                <Lock size={16} />
-                Current PIN
-              </Label>
-              <InputWrapper>
-                <InputIcon>
-                  <KeyRound size={18} />
-                </InputIcon>
-                <Input
-                  type="password"
-                  value={oldKey}
-                  onChange={(e) => setOldKey(e.target.value.replace(/\D/g, ""))}
-                  placeholder="Enter current PIN"
-                  maxLength={4}
-                />
-              </InputWrapper>
-            </InputGroup>
+            {pinExists && (
+              <InputGroup>
+                <Label>
+                  <Lock size={16} />
+                  Current PIN
+                </Label>
+                <InputWrapper>
+                  <InputIcon>
+                    <KeyRound size={18} />
+                  </InputIcon>
+                  <Input
+                    type="password"
+                    value={oldKey}
+                    onChange={(e) =>
+                      setOldKey(e.target.value.replace(/\D/g, ""))
+                    }
+                    placeholder="Enter current PIN"
+                    maxLength={4}
+                  />
+                </InputWrapper>
+              </InputGroup>
+            )}
 
             <InputGroup>
               <Label>
                 <Lock size={16} />
-                New PIN
+                {pinExists ? "New PIN" : "Your PIN"}
               </Label>
               <InputWrapper>
                 <InputIcon>
@@ -341,17 +435,29 @@ export default function ChangeKeyPage() {
                   type="password"
                   value={newKey}
                   onChange={(e) => setNewKey(e.target.value.replace(/\D/g, ""))}
-                  placeholder="Enter new PIN"
+                  placeholder={
+                    pinExists ? "Enter new PIN" : "Enter 4-digit PIN"
+                  }
                   maxLength={4}
                 />
               </InputWrapper>
             </InputGroup>
 
             <SubmitButton
-              onClick={handleChangeKey}
-              disabled={loading || oldKey.length !== 4 || newKey.length !== 4}
+              onClick={pinExists ? handleChangeKey : handleInitializePin}
+              disabled={
+                loading ||
+                newKey.length !== 4 ||
+                (pinExists === true && oldKey.length !== 4)
+              }
             >
-              {loading ? "Updating PIN..." : "Update PIN"}
+              {loading
+                ? pinExists
+                  ? "Updating PIN..."
+                  : "Setting PIN..."
+                : pinExists
+                ? "Update PIN"
+                : "Set PIN"}
               {!loading && <span>→</span>}
             </SubmitButton>
           </FormContent>

@@ -13,35 +13,16 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { old_key, new_key } = body;
+    const { pin } = body;
 
-    if (!old_key || !new_key) {
+    if (!pin) {
+      return NextResponse.json({ detail: "PIN is required" }, { status: 400 });
+    }
+
+    if (pin.length !== 4) {
       return NextResponse.json(
-        { detail: "Both old_key and new_key are required" },
+        { detail: "PIN must be 4 digits" },
         { status: 400 }
-      );
-    }
-
-    const checkResponse = await fetch(`${BACKEND_URL}/pin?key=${API_KEY}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!checkResponse.ok) {
-      return NextResponse.json(
-        { detail: "Failed to verify current PIN" },
-        { status: 500 }
-      );
-    }
-
-    const currentData = await checkResponse.json();
-
-    if (currentData.pin !== old_key) {
-      return NextResponse.json(
-        { detail: "Current PIN is incorrect" },
-        { status: 401 }
       );
     }
 
@@ -51,7 +32,7 @@ export async function POST(request: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        pin: new_key,
+        pin: pin,
       }),
     });
 
@@ -71,14 +52,14 @@ export async function POST(request: Request) {
 
     const data = await response.json();
     return NextResponse.json({
-      message: "PIN changed successfully",
+      message: "PIN initialized successfully",
       result: data.Result || data.result,
     });
   } catch (error: unknown) {
-    console.error("API Error:", error);
+    console.error("Initialize PIN Error:", error);
 
     const message =
-      error instanceof Error ? error.message : "Failed to change PIN";
+      error instanceof Error ? error.message : "Failed to initialize PIN";
 
     return NextResponse.json({ detail: message }, { status: 500 });
   }
