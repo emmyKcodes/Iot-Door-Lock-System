@@ -234,26 +234,6 @@ const Select = styled.select`
   }
 `;
 
-const RestrictionsList = styled.div`
-  background: rgba(59, 130, 246, 0.05);
-  border: 1px solid rgba(59, 130, 246, 0.1);
-  border-radius: ${(props) => props.theme.borderRadius.md};
-  padding: ${(props) => props.theme.spacing.md};
-`;
-
-const RestrictionItem = styled.div`
-  display: flex;
-  align-items: start;
-  gap: ${(props) => props.theme.spacing.sm};
-  margin-bottom: ${(props) => props.theme.spacing.sm};
-  font-size: 0.875rem;
-  color: ${(props) => props.theme.colors.textSecondary};
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-`;
-
 const ActionButtons = styled.div`
   display: flex;
   gap: ${(props) => props.theme.spacing.md};
@@ -569,7 +549,7 @@ export default function DisableDoorTemporarily() {
               <p>Main Entrance</p>
             </DoorInfo>
             <StatusBadge $disabled={doorDisabled}>
-              {doorDisabled ? "🚫 Disabled" : "✓ Active"}
+              {doorDisabled ? " Disabled" : "✓ Active"}
             </StatusBadge>
           </DoorHeader>
 
@@ -616,32 +596,6 @@ export default function DisableDoorTemporarily() {
                   </CustomDurationInput>
                 )}
               </Section>
-
-              <Section>
-                <SectionTitle>Restrictions During Disable Period</SectionTitle>
-                <RestrictionsList>
-                  <RestrictionItem>
-                    <span>🔒</span>
-                    <span>All unlock attempts will be blocked</span>
-                  </RestrictionItem>
-                  <RestrictionItem>
-                    <span>🔢</span>
-                    <span>PIN changes will not be allowed</span>
-                  </RestrictionItem>
-                  <RestrictionItem>
-                    <span>📱</span>
-                    <span>Remote access will be restricted</span>
-                  </RestrictionItem>
-                  <RestrictionItem>
-                    <span>👥</span>
-                    <span>Guest access will be suspended</span>
-                  </RestrictionItem>
-                  <RestrictionItem>
-                    <span>⏰</span>
-                    <span>Scheduled access will be paused</span>
-                  </RestrictionItem>
-                </RestrictionsList>
-              </Section>
             </>
           )}
 
@@ -661,7 +615,7 @@ export default function DisableDoorTemporarily() {
                 Cancel
               </CancelButton>
               <DisableButton onClick={handleDisable} disabled={loading}>
-                {loading ? "Disabling..." : "🚫 Disable Door"}
+                {loading ? "Disabling..." : "Disable Door"}
               </DisableButton>
             </>
           )}

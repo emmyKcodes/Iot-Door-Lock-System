@@ -403,7 +403,7 @@ export default function SmartDoorHomepage() {
           <DoorImageWrapper>
             <DoorImage src="/images/front-door.jpg" alt="Front Door" />
             <StatusBadge $locked={doorState.locked}>
-              {doorState.locked ? "🔒 Locked" : "🔓 Unlocked"}
+              {doorState.locked ? " Locked" : " Unlocked"}
             </StatusBadge>
           </DoorImageWrapper>
 

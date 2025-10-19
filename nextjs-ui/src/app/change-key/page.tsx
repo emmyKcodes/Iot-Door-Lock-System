@@ -389,7 +389,6 @@ export default function ChangeKeyPage() {
 
       <FormContainer>
         <InfoBox>
-          <div style={{ marginTop: "2px" }}>ℹ️</div>
           <InfoText>
             {pinExists
               ? "Enter your current PIN and choose a new one. Make sure to remember your new PIN as it will be required to unlock your door."
