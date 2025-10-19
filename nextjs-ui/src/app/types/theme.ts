@@ -12,6 +12,7 @@ export interface Theme {
     border: string;
     glassBg: string;
     glassBorder: string;
+    info: string;
   };
   spacing: {
     xs: string;

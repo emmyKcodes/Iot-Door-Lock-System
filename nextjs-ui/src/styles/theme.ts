@@ -13,7 +13,8 @@ export const lightTheme: Theme = {
     warning: "#f59e0b",
     border: "#e0e0e0",
     glassBg: "rgba(245, 245, 245, 0.8)",
-    glassBorder: "rgba(224, 224, 224, 0.5)", // Light border
+    glassBorder: "rgba(224, 224, 224, 0.5)",
+    info: "#3b82f6", // Add this - blue for info
   },
   spacing: {
     xs: "0.25rem",
@@ -48,7 +49,8 @@ export const darkTheme: Theme = {
     warning: "#f59e0b",
     border: "#333333",
     glassBg: "rgba(26, 26, 26, 0.8)",
-    glassBorder: "rgba(51, 51, 51, 0.5)", // Dark border
+    glassBorder: "rgba(51, 51, 51, 0.5)",
+    info: "#60a5fa", // Add this - lighter blue for dark mode
   },
   spacing: lightTheme.spacing,
   borderRadius: lightTheme.borderRadius,
