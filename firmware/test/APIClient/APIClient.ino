@@ -1,322 +1,300 @@
 #include <WiFi.h>
-#include <HTTPClient.h>
+#include <WiFiMulti.h>
+#include <WiFiClientSecure.h>
 #include <Arduino_JSON.h>
 #include <Preferences.h>
 
 // Configuration
-#define SSID "THATDUBEMGUY"
-#define PSWD "thatdubemguy."
-#define API_BASE "https://iot-door-lock-system.onrender.com/DLIS/"
+#define SSID_PRIMARY "Dubem's Phone"
+#define PSWD_PRIMARY "password7"
+#define SSID_SECONDARY "THATDUBEMGUY"
+#define PSWD_SECONDARY "thatdubemguy."
+#define HOST "iot-door-lock-system.onrender.com"
+#define PORT 443
 #define LED_PIN 2
 #define HASH "6f9d9614b195f255e7bb3744b92f9486713d9b7eb92edba244bc0f11907ae7c5"
 
-// Polling intervals (in milliseconds)
+// Optimized polling intervals
 #define STATE_CHECK_INTERVAL 500
 #define LOCK_CHECK_INTERVAL 2000
-#define PIN_CHECK_INTERVAL 5000
-#define WIFI_CHECK_INTERVAL 5000
+#define PIN_CHECK_INTERVAL 10000
+#define WIFI_CHECK_INTERVAL 10000
 
-// WiFi reconnection settings
-#define WIFI_CONNECT_TIMEOUT 5000
-#define MAX_WIFI_RETRIES 3
+// Connection timeouts
+#define HTTP_TIMEOUT 3000
+#define WIFI_CONNECT_TIMEOUT 8000
 
+// Global objects
 Preferences prefs;
-HTTPClient http;  // Single HTTP client instance
+WiFiMulti wifiMulti;
 
-// State management
-struct SystemState {
-  bool currentState = false;
-  bool previousState = false;
-  bool currentLock = true;
-  bool previousLock = true;
+// System state
+struct {
+  bool state = false;
+  bool prevState = false;
+  bool lock = false;
+  bool prevLock = false;
   String pin = "2134";
-  uint8_t consecutiveFailures = 0;
-} state;
+} sys;
 
-// Timing variables
-unsigned long lastStateCheck = 0;
-unsigned long lastLockCheck = 0;
-unsigned long lastPinCheck = 0;
-unsigned long lastWifiCheck = 0;
+// Timing
+unsigned long tState = 0;
+unsigned long tLock = 0;
+unsigned long tPin = 0;
+unsigned long tWifi = 0;
 
-// Non-blocking LED state
-struct LEDController {
+// LED controller
+struct {
   bool active = false;
-  unsigned long startTime = 0;
-  unsigned long interval = 0;
-  uint8_t blinkCount = 0;
-  uint8_t currentBlink = 0;
-  bool ledState = false;
-} ledCtrl;
+  unsigned long start = 0;
+  uint16_t interval = 0;
+} led;
 
 // Function declarations
-void connectToWifi();
-bool checkWifiConnection();
-void startLedSequence(uint16_t interval, uint8_t count);
-// void updateLedSequence();
-void updateLedSequence_();
-bool makeApiRequest(const char* endpoint, JSONVar& response);
-void handleStateUpdate();
-void handleLockUpdate();
-void handlePinUpdate();
+void connectWifi();
+bool isWifiConnected();
+void blinkLed(uint16_t duration);
+void updateLed();
+bool apiGet(const char* endpoint, JSONVar& response);
+void checkState();
+void checkLock();
+void checkPin();
 
 void setup() {
   Serial.begin(115200);
   pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
   
-  // Initialize preferences
+  // Load saved state
   prefs.begin("DLIS", false);
-  state.pin = prefs.getString("pin", "2134");
-  state.currentLock = prefs.getBool("lock", true);
-  state.previousLock = state.currentLock;
+  sys.pin = prefs.getString("pin", "2134");
+  sys.lock = prefs.getBool("lock", false);
+  sys.prevLock = sys.lock;
   
-  Serial.println("\n[SYSTEM] Door Lock IoT System Starting...");
-  Serial.printf("[CONFIG] PIN: SECURED, Lock: %s\n", 
-                state.currentLock ? "LOCKED" : "UNLOCKED");
+  Serial.println("\n[INIT] Door Lock System v2.0");
+  Serial.printf("[INIT] Lock: %s\n", sys.lock ? "LOCKED" : "UNLOCKED");
   
-  // Connect to WiFi
-  connectToWifi();
+  connectWifi();
 }
 
 void loop() {
-  unsigned long currentMillis = millis();
+  unsigned long now = millis();
   
-  updateLedSequence();
+  // Update LED (non-blocking)
+  updateLed();
   
-  if (currentMillis - lastWifiCheck >= WIFI_CHECK_INTERVAL) {
-    lastWifiCheck = currentMillis;
-    if (!checkWifiConnection()) {
-      connectToWifi();
+  // Check WiFi periodically
+  if (now - tWifi >= WIFI_CHECK_INTERVAL) {
+    tWifi = now;
+    if (!isWifiConnected()) {
+      connectWifi();
       return;
     }
   }
   
+  // Skip API calls if WiFi down
+  if (wifiMulti.run() != WL_CONNECTED) return;
+  
+  // Stagger API calls for load distribution
+  if (now - tLock >= LOCK_CHECK_INTERVAL) {
+    tLock = now;
+    checkLock();
+  }
+  
+  if (now - tState >= STATE_CHECK_INTERVAL) {
+    tState = now;
+    checkState();
+  }
 
-  if (WiFi.status() != WL_CONNECTED) {
-    return;
+  if (now - tPin >= PIN_CHECK_INTERVAL) {
+    tPin = now;
+    checkPin();
   }
-  
-  // Check state endpoint
-  if (currentMillis - lastStateCheck >= STATE_CHECK_INTERVAL) {
-    lastStateCheck = currentMillis;
-    handleStateUpdate();
-  }
-  
-  // Check lock endpoint
-  if (currentMillis - lastLockCheck >= LOCK_CHECK_INTERVAL) {
-    lastLockCheck = currentMillis;
-    JSONVar data;
-    handleLockUpdate();
-    Serial.print("Google: ");
-    Serial.println(makeApiRequest("https://www.google.com/",data));
-  }
-  
-  // Check pin endpoint
-  if (currentMillis - lastPinCheck >= PIN_CHECK_INTERVAL) {
-    lastPinCheck = currentMillis;
-    handlePinUpdate();
-  }
-  
+
   yield();
 }
 
-void connectToWifi() {
-  if (WiFi.status() == WL_CONNECTED) {
-    return;
-  }
+void connectWifi() {
+  if (wifiMulti.run() == WL_CONNECTED) return;
   
-  Serial.printf("[WIFI] Connecting to %s", SSID);
-  WiFi.setHostname("D.L.I.S");
-  WiFi.begin(SSID, PSWD);
+  Serial.print("[WIFI] Connecting");
+  WiFi.setHostname("DLIS");
+  wifiMulti.addAP(SSID_PRIMARY, PSWD_PRIMARY);
+  wifiMulti.addAP(SSID_SECONDARY, PSWD_SECONDARY);
   
-  unsigned long startTime = millis();
-  
-  while (WiFi.status() != WL_CONNECTED) {
-    if (millis() - startTime >= WIFI_CONNECT_TIMEOUT) {
-      Serial.println("\n[WIFI] Connection timeout!");
+  unsigned long start = millis();
+  while (wifiMulti.run() != WL_CONNECTED) {
+    if (millis() - start >= WIFI_CONNECT_TIMEOUT) {
+      Serial.println("\n[WIFI] Timeout!");
       return;
     }
     delay(500);
     Serial.print(".");
   }
   
-  Serial.print("\n[WIFI] Connected successfully to ");
-  Serial.println(SSID);
-  Serial.printf("[WIFI] IP Address: %s\n", WiFi.localIP().toString().c_str());
-  Serial.printf("[WIFI] Signal Strength: %d dBm\n", WiFi.RSSI());
-  
-  state.consecutiveFailures = 0;
+  Serial.printf("\n[WIFI] Connected: %s\n", WiFi.SSID().c_str());
+  Serial.printf("[WIFI] IP: %s | RSSI: %d dBm\n", 
+                WiFi.localIP().toString().c_str(), WiFi.RSSI());
 }
 
-bool checkWifiConnection() {
-  if (WiFi.status() == WL_CONNECTED) {
-    return true;
-  }
-  
-  Serial.println("[WIFI] Connection lost!");
+bool isWifiConnected() {
+  if (wifiMulti.run() == WL_CONNECTED) return true;
+  Serial.println("[WIFI] Disconnected!");
   return false;
 }
 
-void startLedSequence(uint16_t interval, uint8_t count) {
-  ledCtrl.active = true;
-  ledCtrl.startTime = millis();
-  ledCtrl.interval = interval;
-  ledCtrl.blinkCount = count;
-  ledCtrl.currentBlink = 0;
-  ledCtrl.ledState = false;
-  digitalWrite(LED_PIN, LOW);
+void blinkLed(uint16_t duration) {
+  led.active = true;
+  led.start = millis();
+  led.interval = duration;
+  digitalWrite(LED_PIN, HIGH);
 }
 
-void updateLedSequence_(){
-  if(millis() - ledCtrl.startTime > ledCtrl.interval){
-    digitalWrite(LED_PIN, ledCtrl.active ? HIGH : LOW);
+void updateLed() {
+  if (led.active && (millis() - led.start >= led.interval)) {
+    led.active = false;
+    digitalWrite(LED_PIN, LOW);
   }
 }
 
-// void updateLedSequence() {
-//   if (!ledCtrl.active) {
-//     return;
-//   }
-  
-//   unsigned long elapsed = millis() - ledCtrl.startTime;
-//   unsigned long cycleTime = ledCtrl.interval * 2;
-  
-//   if (ledCtrl.currentBlink >= ledCtrl.blinkCount) {
-//     // Sequence complete
-//     ledCtrl.active = false;
-//     digitalWrite(LED_PIN, LOW);
-//     return;
-//   }
-  
-//   // Toggle LED state
-//   bool newState = (elapsed % cycleTime) < ledCtrl.interval;
-//   if (newState != ledCtrl.ledState) {
-//     ledCtrl.ledState = newState;
-//     digitalWrite(LED_PIN, newState ? HIGH : LOW);
-    
-//     // Count blinks on falling edge
-//     if (!newState) {
-//       ledCtrl.currentBlink++;
-//     }
-//   }
-// }
+bool apiGet(const char* endpoint, JSONVar& payload) {
+  if (wifiMulti.run() != WL_CONNECTED) return false;
 
-bool makeApiRequest(const char* endpoint, JSONVar& response) {
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("[HTTP] WiFi not connected!");
+  WiFiClientSecure *client = new WiFiClientSecure;
+  if (!client) return false;
+  
+  client->setInsecure();
+  
+  // Connect with timeout
+  if (!client->connect(HOST, PORT)) {
+    delete client;
     return false;
   }
+
+  Serial.printf("✓ Connecting to %s:%d\n", HOST, PORT);
+
+  // Build request
+  String req = String("GET ") + endpoint + " HTTP/1.1\r\n" +
+               "Host: " + HOST + "\r\n" +
+               "User-Agent: ESP32\r\n";
   
-  String url = String(API_BASE) + endpoint;
+  if (strcmp(endpoint, "/DLIS/pin") == 0) {
+    req += "key: " + String(HASH) + "\r\n";
+  }
   
-  http.begin(url);
-  // http.setTimeout(5000); // 5 second timeout
-  
-  int statusCode = http.GET();
-  
-  if (statusCode == HTTP_CODE_OK) {
-    String payload = http.getString();
-    response = JSON.parse(payload);
-    http.end();
-    
-    // Reset failure counter on success
-    state.consecutiveFailures = 0;
-    
-    if (JSON.typeof(response) == "undefined") {
-      Serial.println("[HTTP] JSON parse error!");
+  req += "Connection: close\r\n\r\n";
+  client->print(req);
+
+  // Wait for response
+  unsigned long timeout = millis();
+  while (!client->available()) {
+    if (millis() - timeout > HTTP_TIMEOUT) {
+      client->stop();
+      delete client;
       return false;
     }
+    yield();
+  }
+
+  // Serial.println("[HTTPS] Reading response:");
+  // Parse response
+  String body = "";
+  bool inBody = false;
+  int statusCode = 0;
+  
+  while (client->available()) {
+    String line = client->readStringUntil('\n');
     
-    return true;
+    if (statusCode == 0 && line.startsWith("HTTP/")) {
+      statusCode = line.substring(9, 12).toInt();
+    }
+    
+    if (line == "\r" || line.isEmpty()) {
+      inBody = true;
+      continue;
+    }
+    
+    if (inBody) body += line;
+  }
+
+  int jsonStart = body.indexOf('{');          
+  int jsonEnd = body.lastIndexOf('}');
+  String json;
+
+  if (jsonStart != -1 && jsonEnd != -1) {
+  json = body.substring(jsonStart, jsonEnd + 1);
+  // Serial.println(json);
   } else {
-    if((String)endpoint == "pin?key=6f9d9614b195f255e7bb3744b92f9486713d9b7eb92edba244bc0f11907ae7c5"){
-      Serial.printf("[HTTP] Request failed: pin (Code: %d)\n", statusCode);
-    }else{
-      Serial.printf("[HTTP] Request failed: %s (Code: %d)\n", endpoint, statusCode);
-    }
-    state.consecutiveFailures++;
-    http.end();
+    Serial.println("JSON not found in response");
+  }
+
+  client->stop();
+  delete client;
+  
+  if (statusCode != 200) return false;
+  Serial.printf("[HTTPS] Status: %d\n", statusCode);
+  payload = JSON.parse(json);
+  return JSON.typeof(payload) != "undefined";
+}
+
+void checkState() {
+  JSONVar data;
+  
+  if (!apiGet("/DLIS/state", data)) return;
+  
+  if (data.hasOwnProperty("state")) {
+    sys.state = (bool)data["state"];
     
-    // Exponential backoff on repeated failures
-    if (state.consecutiveFailures >= 3) {
-      Serial.println("[HTTP] Multiple failures detected, increasing check interval...");
-      delay(1000); // Brief pause before next attempt
+    if (sys.state != sys.prevState) {
+      Serial.printf("[STATE] %s\n", sys.state ? "ACTIVE" : "INACTIVE");
+      
+      if (sys.state) {
+        blinkLed(500);
+      }else{
+        blinkLed(100);
+      }
+      
+      sys.prevState = sys.state;
     }
+  }
+}
+
+void checkLock() {
+  JSONVar data;
+  
+  if (!apiGet("/DLIS/lock", data)) return;
+  
+  if (data.hasOwnProperty("lock")) {
+    sys.lock = (bool)data["lock"];
     
-    return false;
-  }
-}
-
-void handleStateUpdate() {
-  JSONVar data;
-  
-  if (makeApiRequest("state", data)) {
-    if (data.hasOwnProperty("state")) {
-      state.currentState = (bool)data["state"];
+    if (sys.lock != sys.prevLock) {
+      Serial.printf("[LOCK] %s\n", sys.lock ? "LOCKED" : "UNLOCKED");
       
-      if (state.currentState != state.previousState) {
-        Serial.printf("[STATE] Changed: %s\n", 
-                     state.currentState ? "ACTIVE" : "INACTIVE");
-        
-        if (state.currentState) {
-          startLedSequence(250, 10);
-          Serial.printf("[STATE] Data: %s\n", JSON.stringify(data).c_str());
-        }
-        
-        state.previousState = state.currentState;
+      if (sys.lock) {
+        blinkLed(300);
       }
+      
+      sys.prevLock = sys.lock;
+      prefs.putBool("lock", sys.lock);
     }
   }
 }
 
-void handleLockUpdate() {
+void checkPin() {
   JSONVar data;
   
-  if (makeApiRequest("lock", data)) {
-    if (data.hasOwnProperty("lock")) {
-      state.currentLock = (bool)data["lock"];
-      
-      if (state.currentLock != state.previousLock) {
-        Serial.printf("[LOCK] Changed: %s\n", 
-                     state.currentLock ? "LOCKED" : "UNLOCKED");
-        
-        if (!state.currentLock) {
-          startLedSequence(100, 3);
-          Serial.println("[LOCK] Door unlocked - performing action!");
-          // Add your door unlock logic here
-        }
-        
-        state.previousLock = state.currentLock;
-        prefs.putBool("lock", state.currentLock);
-        
-        Serial.printf("[LOCK] Data: %s\n", JSON.stringify(data).c_str());
-      }
-    }
-  }
-}
+  if (!apiGet("/DLIS/pin", data)) return;
+  
+  if (data.hasOwnProperty("pin")) {
+    String newPin = String((const char*)data["pin"]);
+    
+    if (newPin.length() == 4 && newPin != sys.pin) {
+      Serial.printf("[PIN] Updated: %s\n", newPin.c_str());
 
-void handlePinUpdate() {
-  JSONVar data;
-  String endpoint = String("pin?key=") + HASH;
-  
-  if (makeApiRequest(endpoint.c_str(), data)) {
-    if (data.hasOwnProperty("pin")) {
-      String newPin = String((const char*)data["pin"]);
+      blinkLed(2000);
       
-      // Validate PIN length
-      if (newPin.length() == 4) {
-        if (newPin != state.pin) {
-          Serial.println("[PIN] PIN changed successfully!");
-          startLedSequence(100, 20);
-          
-          state.pin = newPin;
-          prefs.putString("pin", newPin);
-          
-          Serial.printf("[PIN] New PIN: %s\n", newPin.c_str());
-        }
-      } else {
-        Serial.printf("[PIN] Invalid PIN length: %d (expected 4)\n", newPin.length());
-      }
+      sys.pin = newPin;
+      prefs.putString("pin", newPin);
     }
   }
 }

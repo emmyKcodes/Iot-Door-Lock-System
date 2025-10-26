@@ -14,13 +14,13 @@ class TestApiClient:
         self.route: str
         # for _ in range(10):
         while True:
-            # self.post_lock()
+            self.post_lock()
             # sleep(0.01)
             # self.get_lock()
             sleep(0.01)
             # self.get_state()
             sleep(0.01)
-            # self.post_state()
+            self.post_state()
             # sleep(0.01)
             # self.get_pin()
             sleep(0.1)
