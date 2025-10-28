@@ -12,7 +12,8 @@
 #define PSWD_PRIMARY "password7"
 #define SSID_SECONDARY "THATDUBEMGUY"
 #define PSWD_SECONDARY "thatdubemguy."
-#define HOST "iot-door-lock-system.onrender.com"
+// #define HOST "iot-door-lock-system.onrender.com"
+#define HOST "dubemchukwu.pythonanywhere.com"
 #define PORT 443
 #define LED_PIN 2
 #define HASH "6f9d9614b195f255e7bb3744b92f9486713d9b7eb92edba244bc0f11907ae7c5"
@@ -38,7 +39,7 @@
 #define WIFI_CHECK_INTERVAL 10000
 
 // Connection timeouts
-#define HTTP_TIMEOUT 3000
+#define HTTP_TIMEOUT 1500
 #define WIFI_CONNECT_TIMEOUT 10000
 
 // System state
@@ -52,6 +53,7 @@ struct {
   unsigned long LoadTime = millis();
   unsigned long CheckDelay = millis();
   bool CheckPassword = false;
+  bool WatchingAPI = false;
 } sys;
 
 // Timing
@@ -163,7 +165,7 @@ void loop() {
         case once:
           WifiPage();
           StatPage = other;
-          Serial.println("Wifi - Not Connected");
+          Serial.println("[WIFI] Wifi - Not Connected");
           break;
         case other:
           break;
@@ -181,14 +183,10 @@ void loop() {
   if (now - tLock >= LOCK_CHECK_INTERVAL) {
     tLock = now;
     checkLock();
-  }
-  
-  if (now - tState >= STATE_CHECK_INTERVAL) {
+  }else if (now - tState >= STATE_CHECK_INTERVAL) {
     tState = now;
     checkState();
-  }
-
-  if (now - tPin >= PIN_CHECK_INTERVAL) {
+  }else if (now - tPin >= PIN_CHECK_INTERVAL) {
     tPin = now;
     checkPin();
   }
@@ -206,7 +204,7 @@ void loop() {
       HomePage();
       currentPage = RUNNING;
       InputPin = "";
-      Serial.println("Ready for PIN input");
+      Serial.println("[MANUAL] Ready for PIN input");
       break;
       
     case RUNNING:
@@ -305,7 +303,7 @@ void WelcomePage(){
   lcd.clear();
   lcd.noCursor();
   lcd.noBlink();
-  slideText("Welcome", 0, 4, 40);
+  printCentered("Welcome", 0);
 }
 
 int getDist(){
@@ -443,7 +441,10 @@ bool apiGet(const char* endpoint, JSONVar& payload) {
   
   // Connect with timeout
   if (!client->connect(HOST, PORT)) {
-    Serial.printf("✓ Connecting to %s:%d\n", HOST, PORT);
+    if(!sys.WatchingAPI){
+      Serial.printf("✓ Connecting to %s:%d\n", HOST, PORT);
+      sys.WatchingAPI = !sys.WatchingAPI;
+    }
     delete client;
     return false;
   }
@@ -511,6 +512,7 @@ bool apiGet(const char* endpoint, JSONVar& payload) {
     return false;
   }
   payload = JSON.parse(json);
+  sys.WatchingAPI = !sys.WatchingAPI;
   return JSON.typeof(payload) != "undefined";
 }
 
