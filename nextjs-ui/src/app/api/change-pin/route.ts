@@ -12,6 +12,25 @@ export async function POST(request: Request) {
   }
 
   try {
+    // ✅ Check if system is disabled
+    const disableCheckResponse = await fetch(`${BACKEND_URL}/disable`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        key: API_KEY,
+      },
+    });
+
+    if (disableCheckResponse.ok) {
+      const disableData = await disableCheckResponse.json();
+      if (disableData.disabled) {
+        return NextResponse.json(
+          { detail: "PIN changes are currently disabled" },
+          { status: 403 }
+        );
+      }
+    }
+
     const body = await request.json();
     const { old_key, new_key } = body;
 
@@ -22,17 +41,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const checkResponse = await fetch(`${BACKEND_URL}/pin?key=${API_KEY}`, {
+    // Check current PIN with header
+    const checkResponse = await fetch(`${BACKEND_URL}/pin`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        key: API_KEY,
       },
     });
 
     if (!checkResponse.ok) {
       return NextResponse.json(
         { detail: "Failed to verify current PIN" },
-        { status: 500 }
+        { status: checkResponse.status }
       );
     }
 
@@ -45,14 +66,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const response = await fetch(`${BACKEND_URL}/pin?key=${API_KEY}`, {
+    // Update PIN with header
+    const response = await fetch(`${BACKEND_URL}/pin`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        key: API_KEY,
       },
-      body: JSON.stringify({
-        pin: new_key,
-      }),
+      body: JSON.stringify({ pin: new_key }),
     });
 
     if (!response.ok) {

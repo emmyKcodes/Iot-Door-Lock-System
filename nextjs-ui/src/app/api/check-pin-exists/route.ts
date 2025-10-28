@@ -12,20 +12,26 @@ export async function GET() {
   }
 
   try {
-    const response = await fetch(`${BACKEND_URL}/pin?key=${API_KEY}`, {
+    const response = await fetch(`${BACKEND_URL}/pin`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        key: API_KEY,
       },
     });
 
     if (!response.ok) {
+      console.error("Backend responded with error:", response.status);
       return NextResponse.json({ exists: false });
     }
 
     const data = await response.json();
 
-    const exists = data.pin !== null && data.pin !== "";
+    // Check if PIN exists and is not empty
+    const exists =
+      data.pin !== null && data.pin !== undefined && data.pin !== "";
+
+    console.log("PIN check result:", { pin: data.pin, exists });
 
     return NextResponse.json({ exists });
   } catch (error) {

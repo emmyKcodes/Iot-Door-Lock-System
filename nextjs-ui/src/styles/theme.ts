@@ -3,6 +3,7 @@ import { Theme } from "@/app/types/theme";
 export const lightTheme: Theme = {
   colors: {
     primary: "#000000", // Black for light mode
+    primaryDark: "#ffffff", // White for light mode
     secondary: "#333333", // Dark gray
     background: "#ffffff", // Pure white
     surface: "#f5f5f5", // Light gray for cards
@@ -39,6 +40,7 @@ export const lightTheme: Theme = {
 export const darkTheme: Theme = {
   colors: {
     primary: "#ffffff", // White for dark mode
+    primaryDark: "#fffff", // Black for dark mode
     secondary: "#cccccc", // Light gray
     background: "#000000", // Pure black
     surface: "#1a1a1a", // Dark gray for cards

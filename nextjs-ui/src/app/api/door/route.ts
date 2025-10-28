@@ -1,17 +1,34 @@
 import { NextResponse } from "next/server";
 
+const API_KEY = process.env.DLIS_API_KEY;
+const BACKEND_URL = process.env.DLIS_BACKEND_URL;
+
 export async function GET() {
-  try {
-    const response = await fetch(
-      "https://iot-door-lock-system.onrender.com/DLIS/lock"
+  if (!API_KEY || !BACKEND_URL) {
+    return NextResponse.json(
+      { detail: "Server configuration error" },
+      { status: 500 }
     );
+  }
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/lock`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        key: API_KEY, // ✅ include API key
+      },
+    });
 
     if (!response.ok) {
       throw new Error(`Backend error: ${response.status}`);
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    // Ensure we always return a boolean
+    return NextResponse.json({
+      lock: !!data.lock,
+    });
   } catch (error) {
     console.error("API Error:", error);
     return NextResponse.json(
@@ -22,33 +39,55 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!API_KEY || !BACKEND_URL) {
+    return NextResponse.json(
+      { detail: "Server configuration error" },
+      { status: 500 }
+    );
+  }
+
   try {
     const body = await request.json();
+    const { lock } = body;
 
-    const response = await fetch(
-      "https://iot-door-lock-system.onrender.com/DLIS/lock",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      }
-    );
+    // ✅ validate input
+    if (typeof lock !== "boolean") {
+      return NextResponse.json(
+        { detail: "Lock state must be a boolean" },
+        { status: 400 }
+      );
+    }
+
+    const response = await fetch(`${BACKEND_URL}/lock`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        key: API_KEY, // ✅ include API key
+      },
+      body: JSON.stringify({ lock }),
+    });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Backend error: ${response.status}`);
+      const errorMessage =
+        errorData.error ||
+        errorData.detail ||
+        errorData.message ||
+        `Backend error: ${response.status}`;
+
+      return NextResponse.json(
+        { detail: errorMessage },
+        { status: response.status }
+      );
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    // ✅ Return boolean value from backend or fallback
+    return NextResponse.json({ lock: !!data.lock });
   } catch (error: unknown) {
     console.error("API Error:", error);
-
     const message =
       error instanceof Error ? error.message : "Failed to update door state";
-
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ detail: message }, { status: 500 });
   }
 }
