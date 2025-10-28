@@ -1,6 +1,7 @@
 export interface Theme {
   colors: {
     primary: string;
+    primaryDark: string;
     secondary: string;
     background: string;
     surface: string;
@@ -12,6 +13,7 @@ export interface Theme {
     border: string;
     glassBg: string;
     glassBorder: string;
+    info: string;
   };
   spacing: {
     xs: string;

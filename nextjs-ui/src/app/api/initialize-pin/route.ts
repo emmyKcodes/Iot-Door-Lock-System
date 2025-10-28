@@ -4,61 +4,56 @@ const API_KEY = process.env.DLIS_API_KEY;
 const BACKEND_URL = process.env.DLIS_BACKEND_URL;
 
 export async function POST(request: Request) {
+  console.log("Initialize PIN route called");
+
   if (!API_KEY || !BACKEND_URL) {
+    console.error("Missing env vars:", {
+      hasKey: !!API_KEY,
+      hasUrl: !!BACKEND_URL,
+    });
     return NextResponse.json(
       { detail: "Server configuration error" },
       { status: 500 }
     );
   }
 
+  let body;
   try {
-    const body = await request.json();
-    const { old_key, new_key } = body;
+    body = await request.json();
+    console.log("Received body:", body);
+  } catch (error) {
+    console.error("Failed to parse request body:", error);
+    return NextResponse.json(
+      { detail: "Invalid request body" },
+      { status: 400 }
+    );
+  }
 
-    if (!old_key || !new_key) {
-      return NextResponse.json(
-        { detail: "Both old_key and new_key are required" },
-        { status: 400 }
-      );
-    }
+  const { pin } = body;
 
-    // Check current PIN with header
-    const checkResponse = await fetch(`${BACKEND_URL}/pin`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        key: API_KEY,
-      },
-    });
+  if (!pin) {
+    console.log("No PIN provided");
+    return NextResponse.json({ detail: "PIN is required" }, { status: 400 });
+  }
 
-    if (!checkResponse.ok) {
-      return NextResponse.json(
-        { detail: "Failed to verify current PIN" },
-        { status: checkResponse.status }
-      );
-    }
+  try {
+    console.log("Sending to backend:", { url: `${BACKEND_URL}/pin`, pin });
 
-    const currentData = await checkResponse.json();
-
-    if (currentData.pin !== old_key) {
-      return NextResponse.json(
-        { detail: "Current PIN is incorrect" },
-        { status: 401 }
-      );
-    }
-
-    // Update PIN with header
     const response = await fetch(`${BACKEND_URL}/pin`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         key: API_KEY,
       },
-      body: JSON.stringify({ pin: new_key }),
+      body: JSON.stringify({ pin }),
     });
+
+    console.log("Backend responded with status:", response.status);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      console.error("Backend error:", errorData);
+
       const errorMessage =
         errorData.error ||
         errorData.detail ||
@@ -72,15 +67,17 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
+    console.log("Backend success:", data);
+
     return NextResponse.json({
-      message: "PIN changed successfully",
+      message: "PIN initialized successfully",
       result: data.Result || data.result,
     });
   } catch (error: unknown) {
-    console.error("API Error:", error);
+    console.error("Initialize PIN Error:", error);
 
     const message =
-      error instanceof Error ? error.message : "Failed to change PIN";
+      error instanceof Error ? error.message : "Failed to initialize PIN";
 
     return NextResponse.json({ detail: message }, { status: 500 });
   }

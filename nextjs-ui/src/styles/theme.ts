@@ -3,6 +3,7 @@ import { Theme } from "@/app/types/theme";
 export const lightTheme: Theme = {
   colors: {
     primary: "#000000", // Black for light mode
+    primaryDark: "#ffffff", // White for light mode
     secondary: "#333333", // Dark gray
     background: "#ffffff", // Pure white
     surface: "#f5f5f5", // Light gray for cards
@@ -13,7 +14,8 @@ export const lightTheme: Theme = {
     warning: "#f59e0b",
     border: "#e0e0e0",
     glassBg: "rgba(245, 245, 245, 0.8)",
-    glassBorder: "rgba(224, 224, 224, 0.5)", // Light border
+    glassBorder: "rgba(224, 224, 224, 0.5)",
+    info: "#3b82f6", // Add this - blue for info
   },
   spacing: {
     xs: "0.25rem",
@@ -38,6 +40,7 @@ export const lightTheme: Theme = {
 export const darkTheme: Theme = {
   colors: {
     primary: "#ffffff", // White for dark mode
+    primaryDark: "#fffff", // Black for dark mode
     secondary: "#cccccc", // Light gray
     background: "#000000", // Pure black
     surface: "#1a1a1a", // Dark gray for cards
@@ -48,7 +51,8 @@ export const darkTheme: Theme = {
     warning: "#f59e0b",
     border: "#333333",
     glassBg: "rgba(26, 26, 26, 0.8)",
-    glassBorder: "rgba(51, 51, 51, 0.5)", // Dark border
+    glassBorder: "rgba(51, 51, 51, 0.5)",
+    info: "#60a5fa", // Add this - lighter blue for dark mode
   },
   spacing: lightTheme.spacing,
   borderRadius: lightTheme.borderRadius,

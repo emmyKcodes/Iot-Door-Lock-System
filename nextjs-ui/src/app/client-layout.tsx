@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Navbar } from "@/components/Navbar";
+import StyledComponentsRegistry from "@/lib/registry";
 
 export default function ClientLayout({
   children,
@@ -10,8 +11,10 @@ export default function ClientLayout({
 }) {
   return (
     <>
-      <Navbar />
-      <main className="min-h-screen">{children}</main>
+      <StyledComponentsRegistry>
+        <Navbar />
+        <main className="min-h-screen">{children}</main>
+      </StyledComponentsRegistry>
     </>
   );
 }
