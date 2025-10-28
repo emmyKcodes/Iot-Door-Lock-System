@@ -12,25 +12,6 @@ export async function POST(request: Request) {
   }
 
   try {
-    // ✅ Check if system is disabled
-    const disableCheckResponse = await fetch(`${BACKEND_URL}/disable`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        key: API_KEY,
-      },
-    });
-
-    if (disableCheckResponse.ok) {
-      const disableData = await disableCheckResponse.json();
-      if (disableData.disabled) {
-        return NextResponse.json(
-          { detail: "PIN changes are currently disabled" },
-          { status: 403 }
-        );
-      }
-    }
-
     const body = await request.json();
     const { old_key, new_key } = body;
 

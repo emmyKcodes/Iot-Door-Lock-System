@@ -17,30 +17,6 @@ export async function POST(request: Request) {
     );
   }
 
-  // ✅ Check if system is disabled
-  try {
-    const disableCheckResponse = await fetch(`${BACKEND_URL}/disable`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        key: API_KEY,
-      },
-    });
-
-    if (disableCheckResponse.ok) {
-      const disableData = await disableCheckResponse.json();
-      if (disableData.disabled) {
-        return NextResponse.json(
-          { detail: "PIN initialization is currently disabled" },
-          { status: 403 }
-        );
-      }
-    }
-  } catch (error) {
-    console.error("Failed to check disable status:", error);
-    // Continue anyway - don't block if disable check fails
-  }
-
   let body;
   try {
     body = await request.json();
