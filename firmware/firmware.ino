@@ -32,11 +32,12 @@
 #define COLS 4
 #define BUZZ 4
 
-// Optimized polling intervals
+// Important Constants
 #define STATE_CHECK_INTERVAL 500
-#define LOCK_CHECK_INTERVAL 2000
-#define PIN_CHECK_INTERVAL 10000
+#define LOCK_CHECK_INTERVAL 1000
+#define PIN_CHECK_INTERVAL 5000
 #define WIFI_CHECK_INTERVAL 10000
+#define DOOR_OPEN_INTERVAL 5000
 
 // Connection timeouts
 #define HTTP_TIMEOUT 1500
@@ -52,8 +53,10 @@ struct {
   int LoadCtrl = 0;
   unsigned long LoadTime = millis();
   unsigned long CheckDelay = millis();
+  unsigned long PageDelay = millis();
   bool CheckPassword = false;
   bool WatchingAPI = false;
+  bool PageBool = false;
 } sys;
 
 // Timing
@@ -68,6 +71,14 @@ struct {
   unsigned long start = 0;
   uint16_t interval = 0;
 } led;
+
+// Servo Controller
+enum ServoPosition {ZERO, HALF, FULL};
+struct {
+  bool state = false;
+  uint16_t interval = 0;
+  ServoPosition position = ZERO;
+} _servo_;
 
 // variables
 char keys[ROWS][COLS] = {
@@ -107,6 +118,7 @@ void connectWifi();
 bool isWifiConnected();
 void blinkLed(uint16_t duration);
 void updateLed();
+void updateServo();
 bool apiGet(const char* endpoint, JSONVar& response);
 void checkState();
 void checkLock();
@@ -155,6 +167,7 @@ void loop() {
   
   // Non blocking functions
   updateLed();
+  updateServo();
   
   // Check WiFi periodically
   if (now - tWifi >= WIFI_CHECK_INTERVAL) {
@@ -168,11 +181,9 @@ void loop() {
           Serial.println("[WIFI] Wifi - Not Connected");
           break;
         case other:
-          break;
+          return;
       }
       return;
-    }else{
-      StatPage = other;
     }
   }
 
@@ -214,14 +225,16 @@ void loop() {
         lcd.print("****"); // Show asterisk for security
         Serial.println(InputPin);
 
+        sys.PageDelay = millis();
+        sys.PageBool = true;
         sys.CheckDelay = millis();
         sys.CheckPassword = true;
         if(CheckPassword(key)){
           SuccessPage();
         }else{
           ErrorPage();
+          currentPage = HOME;
         }
-        currentPage = HOME;
       }
       if(millis() - sys.CheckDelay > 1000){
         InputPin = "";
@@ -275,7 +288,37 @@ void SuccessPage(){
   lcd.print("SuccessFully");
   // HandleDoorLock();
   // delay(ScreenDelay);
-  servo.write(180);
+  // servo.write(180);
+  _servo_.state = true;
+  _servo_.interval = DOOR_OPEN_INTERVAL/2;
+}
+
+void updateServo(){
+  if(_servo_.state){
+    if(millis() - sys.PageDelay > DOOR_OPEN_INTERVAL/2){
+      _servo_.state = !_servo_.state;
+    }
+    if(_servo_.position == FULL) return;
+    for(int i=0; i<=180; i+=2){
+    servo.write(i);
+    delay(int((2/180)*(_servo_.interval/2)));
+    };
+    Serial.println("[ACTION] servo is from 0 -> 180");
+    _servo_.position = FULL;
+  }else{
+    if(_servo_.position == ZERO) return;
+    for(int i=180; i>=0; i-=2){
+      servo.write(i);
+      delay(int((2/180)*(_servo_.interval/2)));
+    };
+    Serial.println("[ACTION] servo is from 180 -> 0");
+    _servo_.position = ZERO;
+  };
+
+  if(sys.PageBool && millis() - sys.PageDelay > DOOR_OPEN_INTERVAL){
+    sys.PageBool = false;
+    currentPage = HOME;
+  }
 }
 
 void ErrorPage(){

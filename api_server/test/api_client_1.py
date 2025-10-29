@@ -7,6 +7,7 @@ class TestApiClient:
     """Test API Client for IoT Door System"""
 
     def __init__(self):
+        self._state_ = True
         self._key_ = "6f9d9614b195f255e7bb3744b92f9486713d9b7eb92edba244bc0f11907ae7c5"
         self.base_route = "DLIS"
         # self.url = "https://iot-door-lock-system.onrender.com/" + self.base_route
@@ -15,7 +16,7 @@ class TestApiClient:
         self.route: str
         # for _ in range(10):
         while True:
-            self.post_lock()
+            # self.post_lock()
             # sleep(0.01)
             # self.get_lock()
             sleep(0.01)
@@ -24,8 +25,8 @@ class TestApiClient:
             self.post_state()
             # sleep(0.01)
             # self.get_pin()
-            sleep(0.1)
-            self.post_pin()
+            sleep(8.1)
+            # self.post_pin()
             # sleep(0.1)
 
 
@@ -38,7 +39,8 @@ class TestApiClient:
             {"pin": "0000"}, {"state": True}, {"lock": True},
             {"pin": "8672"}, {"state": False}, {"lock": False},
             ]
-        return choice(data)
+        self._state_ = not self._state_
+        return {"state": self._state_}
 
     def post_lock(self):
         req = request("POST", f"{self.url}/lock", json=self.data(), timeout=5)
