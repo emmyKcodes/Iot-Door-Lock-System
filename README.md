@@ -6,8 +6,8 @@ Welcome to the future of home security! This hybrid smart lock system combines t
 
 [![Built with ESP32](https://img.shields.io/badge/Built%20with-ESP32-blue?logo=espressif)](https://www.espressif.com/)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-green?logo=fastapi)](https://fastapi.tiangolo.com/)
-[![Deployed on Render](https://img.shields.io/badge/Deployed-Render-purple?logo=render)](https://render.com/)
-[![Streamlit](https://img.shields.io/badge/Dashboard-Streamlit-red?logo=streamlit)](https://streamlit.io/)
+[![Deployed on Pythonanywhere](https://img.shields.io/badge/API-PythonAnywhere-green?logo=pythonanywhere)](https://www.pythonanywhere.com/)
+[![Nextjs](https://img.shields.io/badge/WebApp-NextJS-blue?logo=javascript)](https://nextjs.org/)
 
 ---
 
@@ -30,7 +30,7 @@ Ever locked yourself out? Forgotten your keys? Wanted to let someone in while yo
 - **Offline Operation** - Works even without internet
 
 ### 🌍 **Remote Control Hub**
-- **Streamlit Web Dashboard** - Beautiful, intuitive interface
+- **Next-js Web Dashboard** - Beautiful, intuitive interface
 - **One-Click Unlock** - Open your door from anywhere in the world
 - **Dynamic PIN Management** - Update access codes on the fly
 - **Real-time Status** - See if your door is locked or unlocked
@@ -47,8 +47,8 @@ Ever locked yourself out? Forgotten your keys? Wanted to let someone in while yo
 
 ```mermaid
 graph TB
-    A[📱 Nextjs- Dashboard] --> B[⚡ FastAPI Backend]
-    B --> C[☁️ Render Cloud]
+    A[📱 Nextjs- Dashboard] --> B[⚡ Flask Backend]
+    B --> C[☁️ PythonAnywhere Cloud]
     C --> D[🌐 Internet]
     D --> E[📡 ESP32 WiFi]
     E --> F[🔐 Servo Controlled Lock]
@@ -81,14 +81,14 @@ Your door's digital brain that:
 - Manages LCD display and buzzer feedback
 - Maintains WiFi connection for remote commands
 
-#### 2. **☁️ Cloud Layer (FastAPI + Render)**
+#### 2. **☁️ Cloud Layer (Flask + PythonAnywhere)**
 The command center that:
 - Receives requests from your web dashboard
 - Validates security credentials
 - Sends commands to your ESP32
 - Handles all the heavy lifting in the cloud
 
-#### 3. **🖥️ Interface Layer (Streamlit)**
+#### 3. **🖥️ Interface Layer (Next-js)**
 Your control panel that:
 - Provides a beautiful, responsive web interface
 - Enables one-click door control
@@ -133,9 +133,9 @@ Your control panel that:
 - Open source and hackable
 
 ### **☁️ Modern Deployment**
-- FastAPI for lightning-fast APIs
+- Flask for lightning-fast APIs
 - Render for reliable cloud hosting
-- Streamlit for rapid prototyping
+- Next-Js for Web deployment
 - Seamless CI/CD integration
 
 ---
@@ -148,14 +148,14 @@ Ready to secure your space? Jump into the installation guide and have your smart
 - ESP32 development board
 - Basic electronics components (see hardware list)
 - Python 3.8+ for local development
-- Render account for deployment
+- PythonAnywhere account for deployment
 
 ### **Quick Start**
 1. **Clone this repository**
 2. **Set up your hardware** (wiring diagrams included)
 3. **Deploy the API** to Render
 4. **Configure the ESP32** with your WiFi credentials
-5. **Launch the Streamlit dashboard**
+5. **Launch the Next-js dashboard**
 6. **Start unlocking doors like a tech wizard!** 🧙‍♂️
 
 ---
