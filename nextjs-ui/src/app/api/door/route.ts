@@ -82,7 +82,6 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
-    // ✅ Return boolean value from backend or fallback
     return NextResponse.json({ lock: !!data.lock });
   } catch (error: unknown) {
     console.error("API Error:", error);
