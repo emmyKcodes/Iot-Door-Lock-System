@@ -32,14 +32,29 @@ export async function POST(request: Request) {
   const { pin } = body;
 
   if (!pin) {
-    console.log("No PIN provided");
     return NextResponse.json({ detail: "PIN is required" }, { status: 400 });
   }
 
   try {
-    console.log("Sending to backend:", { url: `${BACKEND_URL}/pin`, pin });
+    // 🔹 Step 1: Check if PIN already exists
+    const checkResponse = await fetch(`${BACKEND_URL}/DLIS/pin`, {
+      method: "GET",
+      headers: { key: API_KEY },
+    });
 
-    const response = await fetch(`${BACKEND_URL}/pin`, {
+    const checkData = await checkResponse.json();
+    console.log("Check PIN data:", checkData);
+
+    if (checkResponse.ok && checkData.pin) {
+      return NextResponse.json(
+        { detail: "A PIN already exists. Initialization not allowed." },
+        { status: 409 } // 409 = Conflict
+      );
+    }
+
+    // 🔹 Step 2: Initialize PIN only if none exists
+    console.log("Initializing new PIN:", pin);
+    const response = await fetch(`${BACKEND_URL}/DLIS/pin`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -53,13 +68,11 @@ export async function POST(request: Request) {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error("Backend error:", errorData);
-
       const errorMessage =
         errorData.error ||
         errorData.detail ||
         errorData.message ||
         `Backend error: ${response.status}`;
-
       return NextResponse.json(
         { detail: errorMessage },
         { status: response.status }
@@ -75,10 +88,8 @@ export async function POST(request: Request) {
     });
   } catch (error: unknown) {
     console.error("Initialize PIN Error:", error);
-
     const message =
       error instanceof Error ? error.message : "Failed to initialize PIN";
-
     return NextResponse.json({ detail: message }, { status: 500 });
   }
 }

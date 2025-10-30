@@ -240,7 +240,7 @@ export default function ChangeKeyForm({
   const [newKey, setNewKey] = useState("");
   const [message, setMessage] = useState<Message | null>(null);
   const [loading, setLoading] = useState(false);
-  const [pinExists] = useState(initialPinExists);
+  const [pinExists, setPinExists] = useState(initialPinExists);
 
   const handleInitializePin = async () => {
     setLoading(true);
@@ -265,6 +265,19 @@ export default function ChangeKeyForm({
           type: "success",
         });
         setNewKey("");
+      }
+      // ✅ Detect conflict and switch to Change PIN UI
+      else if (response.status === 409) {
+        setMessage({
+          text:
+            data.message ||
+            "A PIN already exists. Please change your PIN instead.",
+          detail: "Status: 409 (Conflict)",
+          type: "error",
+        });
+
+        // 👇 This makes the page switch from "Set Up Your PIN" → "Change Your PIN"
+        setPinExists(true);
       } else {
         const errorMessage =
           typeof data.detail === "string"

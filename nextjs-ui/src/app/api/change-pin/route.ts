@@ -22,12 +22,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check current PIN with header
-    const checkResponse = await fetch(`${BACKEND_URL}/pin`, {
+    // ✅ Check current PIN (send key as header, not query)
+    const checkResponse = await fetch(`${BACKEND_URL}/DLIS/pin`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        key: API_KEY,
+        key: API_KEY, // ✅ important
       },
     });
 
@@ -47,12 +47,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Update PIN with header
-    const response = await fetch(`${BACKEND_URL}/pin`, {
+    // ✅ Update PIN (send key as header again)
+    const response = await fetch(`${BACKEND_URL}/DLIS/pin`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        key: API_KEY,
+        key: API_KEY, // ✅ same fix
       },
       body: JSON.stringify({ pin: new_key }),
     });
@@ -78,10 +78,8 @@ export async function POST(request: Request) {
     });
   } catch (error: unknown) {
     console.error("API Error:", error);
-
     const message =
       error instanceof Error ? error.message : "Failed to change PIN";
-
     return NextResponse.json({ detail: message }, { status: 500 });
   }
 }

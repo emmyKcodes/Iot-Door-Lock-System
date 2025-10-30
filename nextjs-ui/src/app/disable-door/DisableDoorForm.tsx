@@ -252,8 +252,7 @@ export default function DisableDoorForm({
   const [doorDisabled, setDoorDisabled] = useState(initialDoorDisabled);
   const [loading, setLoading] = useState(false);
 
-  const API_URL = "/api/door";
-
+  const API_URL = "/api/disable-door";
   const handleToggle = async () => {
     setLoading(true);
     setMessage(null);
@@ -264,7 +263,7 @@ export default function DisableDoorForm({
       const response = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lock: newLockState }),
+        body: JSON.stringify({ disabled: newLockState }),
       });
 
       const data = await response.json();

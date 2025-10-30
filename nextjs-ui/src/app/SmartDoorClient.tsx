@@ -13,6 +13,14 @@ interface ActionButtonProps {
 
 // ... all your styled components remain the same ...
 
+interface SmartDoorClientProps {
+  initialDoorState: {
+    locked: boolean;
+    disabled: boolean;
+    error: string | null;
+  };
+}
+
 const Container = styled.div`
   min-height: 100vh;
   background: ${(props) => props.theme.colors.background};
@@ -188,31 +196,27 @@ const ActionButton = styled.button<ActionButtonProps>`
   }
 `;
 
-interface SmartDoorClientProps {
-  initialDoorState: {
-    locked: boolean;
-    error: string | null;
-  };
-}
-
 export default function SmartDoorClient({
   initialDoorState,
 }: SmartDoorClientProps) {
-  const [doorState, setDoorState] = useState<{
-    locked: boolean;
-    loading: boolean;
-    error: string | null;
-  }>({
+  const [doorState, setDoorState] = useState({
     locked: initialDoorState.locked,
+    disabled: initialDoorState.disabled,
     loading: false,
     error: initialDoorState.error,
   });
 
-  const [keyDisabled, setKeyDisabled] = useState(initialDoorState.locked);
-
   const API_URL = "/api/door";
 
   const updateLockState = async (isLocked: boolean) => {
+    if (doorState.disabled) {
+      setDoorState((prev) => ({
+        ...prev,
+        error: "Door control is disabled by admin",
+      }));
+      return;
+    }
+
     setDoorState((prev) => ({ ...prev, loading: true }));
 
     try {
@@ -230,8 +234,6 @@ export default function SmartDoorClient({
         loading: false,
         error: null,
       }));
-
-      setKeyDisabled(data.lock);
     } catch {
       setDoorState((prev) => ({
         ...prev,
@@ -241,9 +243,7 @@ export default function SmartDoorClient({
     }
   };
 
-  const handleToggleLock = () => {
-    updateLockState(!doorState.locked);
-  };
+  const handleToggleLock = () => updateLockState(!doorState.locked);
 
   return (
     <Container>
@@ -266,7 +266,7 @@ export default function SmartDoorClient({
           <DoorImageWrapper>
             <DoorImage src="/images/front-door.jpg" alt="Front Door" />
             <StatusBadge $locked={doorState.locked}>
-              {keyDisabled
+              {doorState.disabled
                 ? "Disabled"
                 : doorState.locked
                 ? "Locked"
@@ -282,10 +282,10 @@ export default function SmartDoorClient({
 
             <ActionButton
               onClick={handleToggleLock}
-              disabled={doorState.loading || keyDisabled}
+              disabled={doorState.loading || doorState.disabled}
               $animate={doorState.locked && !doorState.loading}
             >
-              {keyDisabled
+              {doorState.disabled
                 ? "Access Denied"
                 : doorState.loading
                 ? "Please wait..."
@@ -295,6 +295,8 @@ export default function SmartDoorClient({
               <span>→</span>
             </ActionButton>
           </DoorInfo>
+
+          {doorState.error && <p className="text-red-500">{doorState.error}</p>}
         </DoorCard>
       </DoorsContainer>
     </Container>

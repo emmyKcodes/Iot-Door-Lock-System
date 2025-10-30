@@ -20,19 +20,22 @@ export async function GET() {
       },
     });
 
+    if (response.status === 401) {
+      const err = await response.json();
+      console.error("Unauthorized:", err);
+      return NextResponse.json({ exists: false, error: "Invalid key" });
+    }
+
     if (!response.ok) {
-      console.error("Backend responded with error:", response.status);
+      console.error("Backend responded with:", response.status);
       return NextResponse.json({ exists: false });
     }
 
     const data = await response.json();
+    const pinValue = data.pin ?? data.data?.pin;
+    const exists = Boolean(pinValue);
 
-    // Check if PIN exists and is not empty
-    const exists =
-      data.pin !== null && data.pin !== undefined && data.pin !== "";
-
-    console.log("PIN check result:", { pin: data.pin, exists });
-
+    console.log("PIN check result:", { pin: pinValue, exists });
     return NextResponse.json({ exists });
   } catch (error) {
     console.error("Check PIN Error:", error);

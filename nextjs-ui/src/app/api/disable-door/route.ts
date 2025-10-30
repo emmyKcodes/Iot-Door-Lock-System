@@ -13,11 +13,11 @@ export async function GET() {
   }
 
   try {
-    const response = await fetch(`${BACKEND_URL}/disable`, {
+    const response = await fetch(`${BACKEND_URL}/DLIS/lock`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        key: API_KEY, // ✅ send key in header
+        key: API_KEY,
       },
     });
 
@@ -26,7 +26,6 @@ export async function GET() {
     }
 
     const data = await response.json();
-    // ✅ Ensure we always return a boolean
     return NextResponse.json({
       disabled: !!data.disabled,
     });
@@ -52,7 +51,6 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { disabled } = body;
 
-    // ✅ validate input (must be true or false)
     if (typeof disabled !== "boolean") {
       return NextResponse.json(
         { detail: "Disabled state must be a boolean" },
@@ -60,13 +58,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const response = await fetch(`${BACKEND_URL}/disable`, {
+    const response = await fetch(`${BACKEND_URL}/DLIS/lock`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        key: API_KEY, // ✅ include key
+        key: API_KEY,
       },
-      body: JSON.stringify({ disabled }),
+      body: JSON.stringify({ lock: disabled }),
     });
 
     if (!response.ok) {
